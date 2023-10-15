@@ -2,6 +2,16 @@
 
 Simple Lens extension that shows custom page and details for Certificates CRD.
 
+# Installing this extension
+
+In OpenLens, navigate to the Extensions list. In the text box, enter the name of this plugin:
+
+```
+lens-httpproxy-info
+```
+
+Click "Install", and after a few moments, the plugin should appear in the list of installed extensions and be enabled.
+
 ## Install
 
 ```sh
