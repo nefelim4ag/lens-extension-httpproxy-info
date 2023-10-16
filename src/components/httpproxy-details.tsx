@@ -17,6 +17,8 @@ export class HTTPProxyDetails extends React.Component<HTTPProxyDetailsProps> {
     const { object: httpproxy } = this.props;
     const includes = this.props.object.spec.includes;
     const routes = this.props.object.spec.routes;
+    const tcpproxy = this.props.object.spec.tcpproxy;
+    const statusConditions = this.props.object.status.conditions;
     const extraData: any[] = [];
     if (!httpproxy) return null;
 
@@ -52,6 +54,7 @@ export class HTTPProxyDetails extends React.Component<HTTPProxyDetailsProps> {
         if (key.conditions && key.conditions.length > 0) {
           var condition = key.conditions[0]
           var service = key.services[0]
+          var pathRewrite = key.pathRewritePolicy
           try {
               if (condition.prefix) {
                 extraData.push(
@@ -60,6 +63,13 @@ export class HTTPProxyDetails extends React.Component<HTTPProxyDetailsProps> {
                     <Renderer.Component.DrawerItem name="Service">
                       {service.name}:{service.port}
                     </Renderer.Component.DrawerItem>
+                    {pathRewrite && (
+                    <Renderer.Component.DrawerItem name="PathRewrite">
+                      {pathRewrite.replacePrefix[0].prefix && (
+                        pathRewrite.replacePrefix[0].prefix
+                      )} -{'>'} {pathRewrite.replacePrefix[0].replacement}
+                    </Renderer.Component.DrawerItem>
+                    )}
                   </div>
                 );
               }
@@ -67,6 +77,93 @@ export class HTTPProxyDetails extends React.Component<HTTPProxyDetailsProps> {
             console.error(e);
           }
         }
+      }
+    }
+
+    if (tcpproxy) {
+      if (tcpproxy.services) {
+        for (const svc of tcpproxy.services) {
+          try {
+            extraData.push(
+              <div>
+                <Renderer.Component.DrawerTitle>Service {svc.name}:{svc.port}</Renderer.Component.DrawerTitle>
+              </div>
+            );
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+      if (tcpproxy.includes) {
+        for (const incl of tcpproxy.includes) {
+          try {
+              extraData.push(
+                <div>
+                  <Renderer.Component.DrawerTitle>Includes: {incl.namespace}/{incl.name}</Renderer.Component.DrawerTitle>
+                  <Renderer.Component.DrawerItem name="Name">
+                    {incl.name}
+                  </Renderer.Component.DrawerItem>
+                  <Renderer.Component.DrawerItem name="Namespace">
+                    {incl.namespace}
+                  </Renderer.Component.DrawerItem>
+                </div>
+              );
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
+
+    if (statusConditions && statusConditions[0].warnings) {
+      var warnings = statusConditions[0].warnings
+      for (const item of warnings) {
+        try {
+          if (condition.prefix) {
+                extraData.push(
+                  <div>
+                    <Renderer.Component.DrawerTitle>Warning: {item.type}</Renderer.Component.DrawerTitle>
+                    <Renderer.Component.DrawerItem name="Message">
+                      {item.message}
+                    </Renderer.Component.DrawerItem>
+                    <Renderer.Component.DrawerItem name="Reason">
+                      {item.reason}
+                    </Renderer.Component.DrawerItem>
+                    <Renderer.Component.DrawerItem name="Status">
+                      {item.status}
+                    </Renderer.Component.DrawerItem>
+                  </div>
+                );
+              }
+          } catch (e) {
+            console.error(e);
+          }
+      }
+    }
+
+    if (statusConditions && statusConditions[0].errors) {
+      var errors = statusConditions[0].errors
+      for (const item of errors) {
+        try {
+          if (condition.prefix) {
+                extraData.push(
+                  <div>
+                    <Renderer.Component.DrawerTitle>Error: {item.type}</Renderer.Component.DrawerTitle>
+                    <Renderer.Component.DrawerItem name="Message">
+                      {item.message}
+                    </Renderer.Component.DrawerItem>
+                    <Renderer.Component.DrawerItem name="Reason">
+                      {item.reason}
+                    </Renderer.Component.DrawerItem>
+                    <Renderer.Component.DrawerItem name="Status">
+                      {item.status}
+                    </Renderer.Component.DrawerItem>
+                  </div>
+                );
+              }
+          } catch (e) {
+            console.error(e);
+          }
       }
     }
 

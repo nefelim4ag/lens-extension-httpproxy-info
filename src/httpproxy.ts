@@ -26,7 +26,7 @@ export class HTTPProxy extends Renderer.K8sApi.KubeObject {
     includes?: [
       {
         name: string;
-        namespace: string;
+        namespace?: string;
         conditions?: [
           {
             prefix?: string;
@@ -48,7 +48,7 @@ export class HTTPProxy extends Renderer.K8sApi.KubeObject {
             name: string;
             port: number;
             protocol?: string;
-            weight?: string;
+            weight?: number;
             validation?: {};
             mirror?: boolean;
             requestHeadersPolicy?: {};
@@ -61,17 +61,46 @@ export class HTTPProxy extends Renderer.K8sApi.KubeObject {
         timeoutPolicy?: {};
         retryPolicy?: {};
         healthCheckPolicy?: {};
-        loadBalancerPolicy?: {};
-        pathRewritePolicy?: {};
+        loadBalancerPolicy?: {
+          strategy?: string;
+          RequestHashPolicies?: [];
+        };
+        pathRewritePolicy?: {
+          replacePrefix: [
+            {
+              prefix?: string;
+              replacement: string;
+            }
+          ]
+        };
         requestHeadersPolicy?: {};
         responseHeadersPolicy?: {};
         cookieRewritePolicies?: [];
         rateLimitPolicy?: {};
+        internalRedirectPolicy: {
+          maxInternalRedirects?: number;
+          redirectResponseCodes?: [];
+          allowCrossSchemeRedirect?: string;
+          denyRepeatedRouteRedirect?: boolean;
+        };
       }
     ]
     tcpproxy?: {
+      healthCheckPolicy?: {};
+      includes?: [
+        {
+          name: string;
+          namespace?: string;
+        }
+      ];
+      loadBalancerPolicy?: {};
       services?: [
-
+        {
+          name: string;
+          port: number;
+          weight?: number;
+          mirror?: boolean;
+        }
       ];
     }
     virtualhost: {
@@ -83,17 +112,45 @@ export class HTTPProxy extends Renderer.K8sApi.KubeObject {
     }
   }
   status: {
-    conditions: {
+    conditions: [{
       lastTransitionTime: string;
       message: string;
       reason: string;
       status: string;
       type?: string;
-    }[];
+      errors?: [
+        {
+          message: string;
+          reason: string;
+          status: boolean;
+          type: string;
+        }
+      ];
+      warnings?: [
+        {
+          message: string;
+          reason: string;
+          status: boolean;
+          type: string;
+        }
+      ];
+    }];
     currentStatus: string;
     description: string;
     loadBalancer: {
-      ingress: [];
+      ingress: [
+        {
+          hostname?: string;
+          ip?: string;
+          ports?: [
+            {
+              error?: string;
+              port: number;
+              protocol: string;
+            }
+          ];
+        }
+      ];
     };
   }
 }
