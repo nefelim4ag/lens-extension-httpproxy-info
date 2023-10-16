@@ -6,7 +6,7 @@
   "description": "Contour HTTPProxy Info",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nefelim4ag/lens-extension-httpproxy-info.git"
+    "url": "git+https://github.com/nefelim4ag/lens-extension-httpproxy-info.git"
   },
   "engines": {
     "lens": "^6.0.0"

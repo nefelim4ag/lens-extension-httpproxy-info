@@ -76,6 +76,28 @@ export class HTTPProxyDetails extends React.Component<HTTPProxyDetailsProps> {
           } catch (e) {
             console.error(e);
           }
+        } else {
+          var service = key.services[0]
+          var pathRewrite = key.pathRewritePolicy
+          try {
+            extraData.push(
+              <div>
+                <Renderer.Component.DrawerTitle>Route prefix: /</Renderer.Component.DrawerTitle>
+                <Renderer.Component.DrawerItem name="Service">
+                  {service.name}:{service.port}
+                </Renderer.Component.DrawerItem>
+                {pathRewrite && (
+                <Renderer.Component.DrawerItem name="PathRewrite">
+                  {pathRewrite.replacePrefix[0].prefix && (
+                    pathRewrite.replacePrefix[0].prefix
+                  )} -{'>'} {pathRewrite.replacePrefix[0].replacement}
+                </Renderer.Component.DrawerItem>
+                )}
+              </div>
+            );
+          } catch (e) {
+            console.error(e);
+          }
         }
       }
     }
