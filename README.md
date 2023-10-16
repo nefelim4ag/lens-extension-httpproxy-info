@@ -23,3 +23,14 @@ Menu > Extensions and search for `lens-httpproxy-info`.
 
 #### Github
 https://github.com/nefelim4ag/lens-extension-httpproxy-info/releases/latest/download/lens-httpproxy-info.tgz
+
+#### Manual
+```sh
+mkdir -p ~/.k8slens/extensions
+git clone https://github.com/nefelim4ag/lens-extension-httpproxy-info.git
+ln -s $(pwd)/lens-extension-httpproxy-info ~/.k8slens/extensions/lens-httpproxy-info
+# Build
+cd $(pwd)/lens-extension-httpproxy-info
+npm install
+npm run build
+```
