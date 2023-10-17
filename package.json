@@ -1,6 +1,6 @@
 {
   "name": "lens-httpproxy-info",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Timofey Titovets <nefelim4ag@gmail.com>",
   "maintainers": [],
   "description": "Contour HTTPProxy Info",
