@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/nefelim4ag/lens-extension-httpproxy-info/compare/v1.0.1...v1.1.0) (2023-10-18)
+
+
+### Features
+
+* **details:** massive format & field extension ([86074e6](https://github.com/nefelim4ag/lens-extension-httpproxy-info/commit/86074e6bf0e4b20712db8c8140584ebdac9ce04d))
+
 # 1.0.0 (2023-10-17)
 
 
