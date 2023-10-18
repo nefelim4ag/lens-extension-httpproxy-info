@@ -1,5 +1,42 @@
 import { Renderer } from "@k8slens/extensions";
 
+export class ServiceDef {
+  name: string;
+  port: number;
+  protocol?: string;
+  weight?: number;
+  validation?: {};
+  mirror?: boolean;
+  requestHeadersPolicy?: {};
+  responseHeadersPolicy?: {};
+  cookieRewritePolicies?: {};
+}
+
+export class ConditionsDef {
+  prefix?: string;
+  regex?: string;
+  exact?: string;
+  header?: {
+    name: string;
+    present?: boolean;
+    notpresent?: boolean;
+    contains?: string;
+    notcontains?: string;
+    exact?: string;
+    notexact?: string;
+  };
+  queryParameter?: {
+    name: string;
+    exact?: string;
+    prefix?: string;
+    suffix?: string;
+    regex?: string;
+    contains?: string;
+    present?: boolean;
+    ignoreCase?: boolean;
+  };
+}
+
 export class HTTPProxy extends Renderer.K8sApi.KubeObject {
   static kind = "HTTPProxy"
   static namespaced = true
@@ -36,26 +73,8 @@ export class HTTPProxy extends Renderer.K8sApi.KubeObject {
     ];
     routes?: [
       {
-        conditions?: [
-          {
-            prefix?: string;
-            regex?: string;
-            header?: string;
-          }
-        ];
-        services?: [
-          {
-            name: string;
-            port: number;
-            protocol?: string;
-            weight?: number;
-            validation?: {};
-            mirror?: boolean;
-            requestHeadersPolicy?: {};
-            responseHeadersPolicy?: {};
-            cookieRewritePolicies?: {};
-          }
-        ];
+        conditions?: ConditionsDef[];
+        services?: ServiceDef[];
         enableWebsockets?: boolean;
         permitInsecure?: boolean;
         timeoutPolicy?: {};
@@ -87,7 +106,7 @@ export class HTTPProxy extends Renderer.K8sApi.KubeObject {
     ]
     tcpproxy?: {
       healthCheckPolicy?: {};
-      includes?: [
+      include?: [
         {
           name: string;
           namespace?: string;
@@ -100,6 +119,7 @@ export class HTTPProxy extends Renderer.K8sApi.KubeObject {
           port: number;
           weight?: number;
           mirror?: boolean;
+          protocol?: string;
         }
       ];
     }

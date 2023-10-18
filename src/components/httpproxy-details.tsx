@@ -1,17 +1,79 @@
 import { Renderer } from "@k8slens/extensions";
 import React from "react";
-import { HTTPProxy } from "../httpproxy";
+import { HTTPProxy, ServiceDef, ConditionsDef } from "../httpproxy";
 
 const {
   Component: {
     Badge,
-    DrawerItem
+    DrawerItem,
+    DrawerTitle
   },
 } = Renderer;
 export interface HTTPProxyDetailsProps extends Renderer.Component.KubeObjectDetailsProps<HTTPProxy> {
 }
 
+enum statusConditionsType {
+  warn = "Warning",
+  err = "Error"
+}
+
 export class HTTPProxyDetails extends React.Component<HTTPProxyDetailsProps> {
+
+  statusCondition(msgType: statusConditionsType, type: string, message: string, reason: string, status: boolean) {
+    return (
+      <div>
+        <DrawerTitle>{msgType}: {type}</DrawerTitle>
+        <DrawerItem name="Message">{message}</DrawerItem>
+        <DrawerItem name="Reason" >{reason}</DrawerItem>
+        <DrawerItem name="Status" >{status}</DrawerItem>
+      </div>
+    )
+  }
+
+  renderServices(services: ServiceDef[]){
+    if (services.length == 0) { return (<div></div>); }
+    if (services.length == 1) {
+      return (
+        <DrawerItem name="Service">{services[0].name}:{services[0].port}</DrawerItem>
+      )
+    }
+    return (
+      <DrawerItem name="Services">
+        {services.map((svc, index) => {
+          return (
+            <div>
+              <DrawerTitle>{svc.name}:{svc.port}</DrawerTitle>
+              {svc.protocol && (<DrawerItem name="Protocol">{svc.protocol}</DrawerItem>)}
+              {svc.weight !== undefined && (<DrawerItem name="Weight">{svc.weight}</DrawerItem>)}
+              {svc.mirror !== undefined && (<DrawerItem name="Mirror">{svc.mirror}</DrawerItem>)}
+            </div>
+          )
+        })}
+      </DrawerItem>
+    )
+  }
+
+  renderCondHeaders(conditions: ConditionsDef[]){
+    if (conditions.length == 0) {return (<div></div>)}
+    return (
+      <DrawerItem name="Conditions: Headers">
+        {conditions.map((cond, index) => {
+          let header = cond.header
+          return (
+            <div>
+              <DrawerTitle>{header.name}</DrawerTitle>
+              {header.present && (<DrawerItem name="Present">{header.present && "True" || "False"}</DrawerItem>)}
+              {header.notpresent && (<DrawerItem name="NotPresent">{header.notpresent && "True" || "False"}</DrawerItem>)}
+              {header.contains && (<DrawerItem name="Contains">{header.contains}</DrawerItem>)}
+              {header.notcontains && (<DrawerItem name="NotContains">{header.notcontains}</DrawerItem>)}
+              {header.exact && (<DrawerItem name="Exact">{header.exact}</DrawerItem>)}
+              {header.notexact && (<DrawerItem name="NotExact">{header.notexact}</DrawerItem>)}
+            </div>
+          )
+        })}
+      </DrawerItem>
+    )
+  }
 
   render() {
     const { object: httpproxy } = this.props;
@@ -22,82 +84,121 @@ export class HTTPProxyDetails extends React.Component<HTTPProxyDetailsProps> {
     const extraData: any[] = [];
     if (!httpproxy) return null;
 
-    // console.error(includes);
+    if (statusConditions) {
+      if (statusConditions[0].errors) {
+        let errors = statusConditions[0].errors
+        for (const cond of errors) {
+          extraData.push(
+            this.statusCondition(statusConditionsType.err, cond.type, cond.message, cond.reason, cond.status)
+          );
+        }
+      }
+      if (statusConditions[0].warnings) {
+        let warnings = statusConditions[0].warnings
+        for (const cond of warnings) {
+          extraData.push(
+            this.statusCondition(statusConditionsType.warn, cond.type, cond.message, cond.reason, cond.status)
+          );
+        }
+      }
+    }
 
+    // console.error(includes);
     if (includes) {
-      for (const key of includes) {
-        try {
-            extraData.push(
-              <div>
-                <Renderer.Component.DrawerTitle>Includes: {key.namespace}/{key.name}</Renderer.Component.DrawerTitle>
-                <Renderer.Component.DrawerItem name="Name">
-                  {key.name}
-                </Renderer.Component.DrawerItem>
-                <Renderer.Component.DrawerItem name="Namespace">
-                  {key.namespace}
-                </Renderer.Component.DrawerItem>
-                {key.conditions && key.conditions.length > 0 && (
-                  <Renderer.Component.DrawerItem name="Conditions">
-                    prefix: {key.conditions[0].prefix}
-                  </Renderer.Component.DrawerItem>
-                )}
-              </div>
-            );
-        } catch (e) {
-          console.error(e);
+      let shortIncludes = includes.map((incl, index) => {
+        if (incl.namespace || incl.conditions) { return; }
+        return <DrawerItem name="Name">{incl.name}</DrawerItem>
+      })
+      let namespacedIncludes = includes.map((incl, index) => {
+        if (incl.conditions) { return; }
+        if (incl.namespace) {
+          return <DrawerItem name={incl.namespace}>{incl.name}</DrawerItem>
+        }
+      })
+
+      if (shortIncludes) {
+        extraData.push(
+        <div>
+          <DrawerTitle>Includes</DrawerTitle>
+          {shortIncludes}
+        </div>
+        )
+      }
+
+      if (namespacedIncludes) {
+        extraData.push(
+        <div>
+          <DrawerTitle>Includes namespaced</DrawerTitle>
+          <DrawerItem name="Namespace">Name</DrawerItem>
+          {namespacedIncludes}
+        </div>
+        )
+      }
+
+      for (const incl of includes) {
+        if (incl.conditions) {
+          var namespace = incl.namespace
+          var prefix = incl.conditions?.[0].prefix
+          extraData.push(
+            <div>
+              <DrawerTitle>Includes: {namespace}/{incl.name}</DrawerTitle>
+              <DrawerItem name="Name">{incl.name}</DrawerItem>
+              {namespace && (<DrawerItem name="Namespace">{namespace}</DrawerItem>)}
+              {prefix && (<DrawerItem name="Conditions">prefix: {prefix}</DrawerItem>)}
+            </div>
+          );
         }
       }
     }
 
     if (routes) {
-      for (const key of routes) {
-        if (key.conditions && key.conditions.length > 0) {
-          var condition = key.conditions[0]
-          var service = key.services[0]
-          var pathRewrite = key.pathRewritePolicy
-          try {
-              if (condition.prefix) {
-                extraData.push(
-                  <div>
-                    <Renderer.Component.DrawerTitle>Route prefix: {key.conditions[0].prefix}</Renderer.Component.DrawerTitle>
-                    <Renderer.Component.DrawerItem name="Service">
-                      {service.name}:{service.port}
-                    </Renderer.Component.DrawerItem>
-                    {pathRewrite && (
-                    <Renderer.Component.DrawerItem name="PathRewrite">
-                      {pathRewrite.replacePrefix[0].prefix && (
-                        pathRewrite.replacePrefix[0].prefix
-                      )} -{'>'} {pathRewrite.replacePrefix[0].replacement}
-                    </Renderer.Component.DrawerItem>
-                    )}
-                  </div>
-                );
-              }
-          } catch (e) {
-            console.error(e);
-          }
-        } else {
-          var service = key.services[0]
-          var pathRewrite = key.pathRewritePolicy
-          try {
+      for (const route of routes) {
+        if (route.conditions && route.conditions.length > 0) {
+          let condition = route.conditions.find((cond) => {return cond.prefix || cond.regex || cond.exact})
+          let services = route.services
+          let pathRewrite = route.pathRewritePolicy
+          let prefix = route.pathRewritePolicy?.replacePrefix?.[0].prefix
+          let replacement = route.pathRewritePolicy?.replacePrefix?.[0].replacement
+          let condHeaders = route.conditions.filter((cond) => {return cond.header})
+          if (condition) {
+            let condType = condition.prefix && "prefix" || condition.regex && "regex" || condition.exact && "exact"
+            let condVal = condType == "prefix" && condition.prefix || condType == "regex" && condition.regex || condType == "exact" && condition.exact
             extraData.push(
               <div>
-                <Renderer.Component.DrawerTitle>Route prefix: /</Renderer.Component.DrawerTitle>
-                <Renderer.Component.DrawerItem name="Service">
-                  {service.name}:{service.port}
-                </Renderer.Component.DrawerItem>
+                <DrawerTitle>Route {condType}: {condVal}</DrawerTitle>
+                {this.renderServices(services)}
                 {pathRewrite && (
-                <Renderer.Component.DrawerItem name="PathRewrite">
-                  {pathRewrite.replacePrefix[0].prefix && (
-                    pathRewrite.replacePrefix[0].prefix
-                  )} -{'>'} {pathRewrite.replacePrefix[0].replacement}
-                </Renderer.Component.DrawerItem>
+                <DrawerItem name="PathRewrite">{prefix && (prefix)} -{'>'} {replacement}</DrawerItem>
                 )}
+                {this.renderCondHeaders(condHeaders)}
               </div>
             );
-          } catch (e) {
-            console.error(e);
+          } else if (condHeaders.length > 0) {
+            extraData.push(
+              <div>
+                <DrawerTitle>Route header: {condHeaders[0].header.name}</DrawerTitle>
+                {this.renderServices(services)}
+                {pathRewrite && (
+                <DrawerItem name="PathRewrite">{prefix && (prefix)} -{'>'} {replacement}</DrawerItem>
+                )}
+                {this.renderCondHeaders(condHeaders)}
+              </div>
+            );
           }
+        } else {
+          let services = route.services
+          let pathRewrite = route.pathRewritePolicy
+          let prefix = route.pathRewritePolicy?.replacePrefix?.[0].prefix
+          let replacement = route.pathRewritePolicy?.replacePrefix?.[0].replacement
+          extraData.push(
+            <div>
+              <DrawerTitle>Route prefix: /</DrawerTitle>
+              {this.renderServices(services)}
+              {pathRewrite && (
+              <DrawerItem name="PathRewrite">{prefix && (prefix)} -{'>'} {replacement}</DrawerItem>
+              )}
+            </div>
+          );
         }
       }
     }
@@ -105,120 +206,49 @@ export class HTTPProxyDetails extends React.Component<HTTPProxyDetailsProps> {
     if (tcpproxy) {
       if (tcpproxy.services) {
         for (const svc of tcpproxy.services) {
-          try {
-            extraData.push(
-              <div>
-                <Renderer.Component.DrawerTitle>Service {svc.name}:{svc.port}</Renderer.Component.DrawerTitle>
-              </div>
-            );
-          } catch (e) {
-            console.error(e);
-          }
+          extraData.push(
+            <div>
+              <DrawerTitle>Service {svc.name}:{svc.port}</DrawerTitle>
+              {svc.protocol && (<DrawerItem name="Protocol">{svc.protocol}</DrawerItem>)}
+              {svc.weight !== undefined && (<DrawerItem name="Weight">{svc.weight}</DrawerItem>)}
+              {svc.mirror !== undefined && (<DrawerItem name="Mirror">{svc.mirror}</DrawerItem>)}
+            </div>
+          );
         }
       }
-      if (tcpproxy.includes) {
-        for (const incl of tcpproxy.includes) {
-          try {
-              extraData.push(
-                <div>
-                  <Renderer.Component.DrawerTitle>Includes: {incl.namespace}/{incl.name}</Renderer.Component.DrawerTitle>
-                  <Renderer.Component.DrawerItem name="Name">
-                    {incl.name}
-                  </Renderer.Component.DrawerItem>
-                  <Renderer.Component.DrawerItem name="Namespace">
-                    {incl.namespace}
-                  </Renderer.Component.DrawerItem>
-                </div>
-              );
-          } catch (e) {
-            console.error(e);
+      if (tcpproxy.include) {
+        let shortIncludes = tcpproxy.include.map((incl, index) => {
+          if (incl.namespace) { return; }
+          return <DrawerItem name="Name">{incl.name}</DrawerItem>
+        })
+        let namespacedIncludes = tcpproxy.include.map((incl, index) => {
+          if (incl.namespace) {
+            return <DrawerItem name={incl.namespace}>{incl.name}</DrawerItem>
           }
+        })
+
+        if (shortIncludes) {
+          extraData.push(
+          <div>
+            <DrawerTitle>Includes</DrawerTitle>
+            {shortIncludes}
+          </div>
+          )
         }
-      }
-    }
 
-    if (statusConditions && statusConditions[0].warnings) {
-      var warnings = statusConditions[0].warnings
-      for (const item of warnings) {
-        try {
-          if (condition.prefix) {
-                extraData.push(
-                  <div>
-                    <Renderer.Component.DrawerTitle>Warning: {item.type}</Renderer.Component.DrawerTitle>
-                    <Renderer.Component.DrawerItem name="Message">
-                      {item.message}
-                    </Renderer.Component.DrawerItem>
-                    <Renderer.Component.DrawerItem name="Reason">
-                      {item.reason}
-                    </Renderer.Component.DrawerItem>
-                    <Renderer.Component.DrawerItem name="Status">
-                      {item.status}
-                    </Renderer.Component.DrawerItem>
-                  </div>
-                );
-              }
-          } catch (e) {
-            console.error(e);
-          }
-      }
-    }
-
-    if (statusConditions && statusConditions[0].errors) {
-      var errors = statusConditions[0].errors
-      for (const item of errors) {
-        try {
-          if (condition.prefix) {
-                extraData.push(
-                  <div>
-                    <Renderer.Component.DrawerTitle>Error: {item.type}</Renderer.Component.DrawerTitle>
-                    <Renderer.Component.DrawerItem name="Message">
-                      {item.message}
-                    </Renderer.Component.DrawerItem>
-                    <Renderer.Component.DrawerItem name="Reason">
-                      {item.reason}
-                    </Renderer.Component.DrawerItem>
-                    <Renderer.Component.DrawerItem name="Status">
-                      {item.status}
-                    </Renderer.Component.DrawerItem>
-                  </div>
-                );
-              }
-          } catch (e) {
-            console.error(e);
-          }
+        if (namespacedIncludes) {
+          extraData.push(
+          <div>
+            <DrawerTitle>Includes namespaced</DrawerTitle>
+            <DrawerItem name="Namespace">Name</DrawerItem>
+            {namespacedIncludes}
+          </div>
+          )
+        }
       }
     }
 
     // console.error(extraData)
     return <div>{extraData}</div>;
-
-    return (
-      <div className="Includes">
-        <Renderer.Component.DrawerTitle>Includes</Renderer.Component.DrawerTitle>
-        <DrawerItem name="Created">
-          {httpproxy.getAge(true, false)} ago ({httpproxy.metadata.creationTimestamp})
-        </DrawerItem>
-        <DrawerItem name="DNS Names LOL!">
-          {httpproxy.spec.virtualhost.fqdn}
-        </DrawerItem>
-        <DrawerItem name="Secret">
-          {httpproxy.spec.virtualhost.tls.secretName}
-        </DrawerItem>
-        <DrawerItem name="Status" className="status" labelsOnly>
-          {httpproxy.status.conditions.map((condition, index) => {
-            const { type, reason, message, status } = condition;
-            const kind = type || reason;
-            if (!kind) return null;
-            return (
-              <Badge
-                key={kind + index} label={kind}
-                className={"success " + kind.toLowerCase()}
-                tooltip={message}
-              />
-            );
-          })}
-        </DrawerItem>
-      </div>
-    )
   }
 }
